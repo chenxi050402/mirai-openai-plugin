@@ -169,8 +169,7 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
     }
 
     private suspend fun chat(event: MessageEvent): Message {
-        val system = event.message.contentToString()
-            .removePrefix(MiraiOpenAiConfig.chat)
+        val system = ChatConfig.systemPrompt
         launch {
             lock[event.sender.id] = event
             val buffer = mutableListOf<ChoiceMessage>()
@@ -220,12 +219,12 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
             }
             if (MiraiOpenAiConfig.bye) {
                 launch {
-                    event.subject.sendMessage(event.message.quote() + "聊天已终止")
+                    event.subject.sendMessage(event.message.quote() + ChatConfig.endChatMsg)
                 }
             }
         }
 
-        return event.message.quote() + "聊天将开始"
+        return event.message.quote() + ChatConfig.startChatMsg
     }
 
     private suspend fun question(event: MessageEvent): Message {

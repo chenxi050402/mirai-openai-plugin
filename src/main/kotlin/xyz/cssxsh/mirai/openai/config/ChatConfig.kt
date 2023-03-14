@@ -35,6 +35,18 @@ internal object ChatConfig : ReadOnlyPluginConfig("chat") {
     @ValueDescription("Frequency Penalty")
     val frequencyPenalty: Double by value(0.0)
 
+    @ValueName("system_prompt")
+    @ValueDescription("人设")
+    val systemPrompt: String by value("You are a helpful assistant.")
+
+    @ValueName("start_chat_msg")
+    @ValueDescription("开始聊天提示")
+    val startChatMsg: String by value("聊天将开始")
+
+    @ValueName("end_chat_msg")
+    @ValueDescription("停止聊天提示")
+    val endChatMsg: String by value("聊天已终止")
+
     fun push(builder: ChatRequest.Builder) {
         builder.model = model
         builder.maxTokens = maxTokens
