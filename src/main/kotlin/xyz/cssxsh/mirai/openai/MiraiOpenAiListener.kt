@@ -169,7 +169,11 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
     }
 
     private suspend fun chat(event: MessageEvent): Message {
-        val system = ChatConfig.systemPrompt
+        val initialMessage = event.message.contentToString().removePrefix(MiraiOpenAiConfig.chat)
+        val preInitialMessage = "\\n\\nThe person you're chatting to told you: "
+        var combinedInitialMessage = ""
+        if (initialMessage.replace("\\s".toRegex(), "") != "") combinedInitialMessage = preInitialMessage + initialMessage
+        val system = ChatConfig.systemPrompt + combinedInitialMessage
         launch {
             lock[event.sender.id] = event
             val buffer = mutableListOf<ChoiceMessage>()
