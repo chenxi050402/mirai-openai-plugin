@@ -1,6 +1,7 @@
 package xyz.cssxsh.mirai.openai.config
 
 import net.mamoe.mirai.console.data.*
+import xyz.cssxsh.mirai.openai.config.CompletionConfig.provideDelegate
 import xyz.cssxsh.openai.chat.*
 import xyz.cssxsh.openai.completion.*
 
@@ -14,6 +15,14 @@ internal object ChatConfig : ReadOnlyPluginConfig("chat") {
     @ValueName("gpt_model")
     @ValueDescription("GPT Model")
     val model: String by value("gpt-3.5-turbo-0301")
+
+    @ValueName("api_url")
+    @ValueDescription("API URL")
+    val APIURL: String by value("https://api.openai.com")
+
+    @ValueName("api_domain")
+    @ValueDescription("API Domain")
+    val APIDomain: String by value("api.openai.com")
 
     @ValueName("max_tokens")
     @ValueDescription("Maximum length")
@@ -35,6 +44,14 @@ internal object ChatConfig : ReadOnlyPluginConfig("chat") {
     @ValueDescription("Frequency Penalty")
     val frequencyPenalty: Double by value(0.0)
 
+    @ValueName("id_to_person")
+    @ValueDescription("Map QQ ID To Person")
+    val personIDs: List<List<String>> by value()
+
+    @ValueName("model_to_person")
+    @ValueDescription("Map Chat Model To Person")
+    val customModels: List<List<String>> by value()
+
     @ValueName("system_prompt")
     @ValueDescription("人设")
     val systemPrompt: String by value("You are a helpful assistant.")
@@ -49,6 +66,15 @@ internal object ChatConfig : ReadOnlyPluginConfig("chat") {
 
     fun push(builder: ChatRequest.Builder) {
         builder.model = model
+        builder.maxTokens = maxTokens
+        builder.temperature = temperature
+        builder.topP = topP
+        builder.presencePenalty = presencePenalty
+        builder.frequencyPenalty = frequencyPenalty
+    }
+
+    fun pushCustom(builder: ChatRequest.Builder, cModel: String) {
+        builder.model = cModel
         builder.maxTokens = maxTokens
         builder.temperature = temperature
         builder.topP = topP

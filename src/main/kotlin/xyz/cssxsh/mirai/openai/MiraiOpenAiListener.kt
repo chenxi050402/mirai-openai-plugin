@@ -105,6 +105,13 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
             } else {
                 chat(event = this)
             }
+            content.startsWith("!" + MiraiOpenAiConfig.chat)
+                    && (MiraiOpenAiConfig.permission.not() || toCommandSender().hasPermission(chat))
+            -> if (lock.size >= MiraiOpenAiConfig.limit) {
+                "聊天服务已开启过多，请稍后重试".toPlainText()
+            } else {
+                chat(event = this)
+            }
             content.startsWith(MiraiOpenAiConfig.question)
                 && (MiraiOpenAiConfig.permission.not() || toCommandSender().hasPermission(question))
             -> if (lock.size >= MiraiOpenAiConfig.limit) {
@@ -183,6 +190,12 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
         val preInitialMessage = "\\n\\nThe person you're chatting to told you: "
         var combinedInitialMessage = ""
         if (initialMessage.replace("\\s".toRegex(), "") != "") combinedInitialMessage = preInitialMessage + initialMessage
+        for (id in ChatConfig.personIDs) {
+            if (event.sender.id == id[0].toLong()) {
+                combinedInitialMessage += "The person you're chatting to is: " + id[1]
+                break
+            }
+        }
         val system = ChatConfig.systemPrompt + combinedInitialMessage
         launch {
             lock[event.sender.id] = event
@@ -195,6 +208,7 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
                 val next = event.nextMessage(ChatConfig.timeout, EventPriority.HIGH, intercept = true)
                 val content = next.contentToString()
                 if (content == MiraiOpenAiConfig.stop) break
+                var custom = false
 
                 buffer.add(ChoiceMessage(
                     role = "user",
@@ -204,7 +218,16 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
                 val chat = client.chat.create(model = "gpt-3.5-turbo-0301") {
                     messages(buffer)
                     user(event.senderName)
-                    ChatConfig.push(this)
+                    if (!event.message.contentToString().startsWith("!")) {
+                        for (id in ChatConfig.customModels) {
+                            if (event.sender.id == id[0].toLong()) {
+                                ChatConfig.pushCustom(this, id[1])
+                                custom = true
+                                break
+                            }
+                        }
+                    }
+                    if (!custom) ChatConfig.push(this)
                 }
                 logger.debug { "${chat.model} - ${chat.usage}" }
                 val reply = chat.choices.first()

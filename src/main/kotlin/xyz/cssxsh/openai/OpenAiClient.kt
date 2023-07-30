@@ -13,6 +13,7 @@ import io.ktor.serialization.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.utils.io.charsets.*
 import kotlinx.serialization.json.*
+import xyz.cssxsh.mirai.openai.config.ChatConfig
 import xyz.cssxsh.openai.chat.*
 import xyz.cssxsh.openai.completion.*
 import xyz.cssxsh.openai.edit.*
@@ -42,7 +43,7 @@ public open class OpenAiClient(internal val config: OpenAiClientConfig) {
                     BearerTokens(config.token, "")
                 }
                 sendWithoutRequest { builder ->
-                    builder.url.host == "api.openai.com"
+                    builder.url.host == ChatConfig.APIDomain
                 }
             }
         }

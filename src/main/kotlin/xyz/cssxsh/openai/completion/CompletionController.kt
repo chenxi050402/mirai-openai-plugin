@@ -3,6 +3,7 @@ package xyz.cssxsh.openai.completion
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import xyz.cssxsh.mirai.openai.config.ChatConfig
 import xyz.cssxsh.openai.*
 
 /**
@@ -14,7 +15,7 @@ public class CompletionController(private val client: OpenAiClient) {
      * [Create completion](https://platform.openai.com/docs/api-reference/completions/create)
      */
     public suspend fun create(request: CompletionRequest): CompletionInfo {
-        val response = client.http.post("https://api.openai.com/v1/completions") {
+        val response = client.http.post(ChatConfig.APIURL + "/v1/completions") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }

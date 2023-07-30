@@ -3,6 +3,7 @@ package xyz.cssxsh.openai.audio
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import xyz.cssxsh.mirai.openai.config.ChatConfig
 import xyz.cssxsh.openai.*
 
 /**
@@ -14,7 +15,7 @@ public class AudioController(private val client: OpenAiClient) {
      * [Create transcription](https://platform.openai.com/docs/api-reference/audio/create)
      */
     public suspend fun transcription(request: AudioRequest): AudioInfo {
-        val response = client.http.post("https://api.openai.com/v1/completions") {
+        val response = client.http.post(ChatConfig.APIURL + "/v1/completions") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }
@@ -33,7 +34,7 @@ public class AudioController(private val client: OpenAiClient) {
      * [Create translation](https://platform.openai.com/docs/api-reference/audio/create)
      */
     public suspend fun translation(request: AudioRequest): AudioInfo {
-        val response = client.http.post("https://api.openai.com/v1/completions") {
+        val response = client.http.post(ChatConfig.APIURL + "/v1/completions") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }
