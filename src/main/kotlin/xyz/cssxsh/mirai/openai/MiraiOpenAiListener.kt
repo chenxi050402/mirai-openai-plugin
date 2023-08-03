@@ -186,10 +186,13 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
     }
 
     private suspend fun chat(event: MessageEvent): Message {
-        val initialMessage = event.message.contentToString().removePrefix(MiraiOpenAiConfig.chat)
+        var initialMessage = ""
+        if (!event.message.contentToString().startsWith("!")) initialMessage = event.message.contentToString().removePrefix(MiraiOpenAiConfig.chat)
+        else initialMessage = event.message.contentToString().removePrefix("!").removePrefix(MiraiOpenAiConfig.chat)
         val preInitialMessage = "\\n\\nThe person you're chatting to told you: "
         var combinedInitialMessage = ""
-        if (initialMessage.replace("\\s".toRegex(), "") != "") combinedInitialMessage = preInitialMessage + initialMessage
+        if (initialMessage.replace("\\s".toRegex(), "") != "" && !initialMessage.startsWith("?model=")) combinedInitialMessage = preInitialMessage + initialMessage
+
         for (id in ChatConfig.personIDs) {
             if (event.sender.id == id[0].toLong()) {
                 combinedInitialMessage += "The person you're chatting to is: " + id[1]
@@ -219,11 +222,17 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
                     messages(buffer)
                     user(event.senderName)
                     if (!event.message.contentToString().startsWith("!")) {
-                        for (id in ChatConfig.customModels) {
-                            if (event.sender.id == id[0].toLong()) {
-                                ChatConfig.pushCustom(this, id[1])
-                                custom = true
-                                break
+                        if (initialMessage.startsWith("?model=")) {
+                            ChatConfig.pushCustom(this, initialMessage.removePrefix("?model="))
+                            custom = true
+                        }
+                        else {
+                            for (id in ChatConfig.customModels) {
+                                if (event.sender.id == id[0].toLong()) {
+                                    ChatConfig.pushCustom(this, id[1])
+                                    custom = true
+                                    break
+                                }
                             }
                         }
                     }
