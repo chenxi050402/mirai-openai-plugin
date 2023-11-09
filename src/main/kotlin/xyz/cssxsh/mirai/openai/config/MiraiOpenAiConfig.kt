@@ -26,6 +26,10 @@ internal object MiraiOpenAiConfig : ReadOnlyPluginConfig("openai"), OpenAiClient
     @ValueDescription("OPENAI_TOKEN https://platform.openai.com/account/api-keys")
     override val token: String by value(System.getenv("OPENAI_TOKEN").orEmpty())
 
+    @ValueName("token_paid")
+    @ValueDescription("OPENAI_TOKEN https://platform.openai.com/account/api-keys")
+    override val tokenpaid: String by value("")
+
     @ValueName("error_reply")
     @ValueDescription("发生错误时回复用户")
     val reply: Boolean by value(true)

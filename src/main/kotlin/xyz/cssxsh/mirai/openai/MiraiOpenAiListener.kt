@@ -195,7 +195,7 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
 
         for (id in ChatConfig.personIDs) {
             if (event.sender.id == id[0].toLong()) {
-                combinedInitialMessage += "The person you're chatting to is: " + id[1]
+                combinedInitialMessage += "First message from user: I'm " + id[1] + "."
                 break
             }
         }
@@ -212,13 +212,23 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
                 val content = next.contentToString()
                 if (content == MiraiOpenAiConfig.stop) break
                 var custom = false
+                var paid = false
 
                 buffer.add(ChoiceMessage(
                     role = "user",
                     content = content
                 ))
 
-                val chat = client.chat.create(model = "gpt-3.5-turbo-0301") {
+                for (id in ChatConfig.customModels) {
+                    if (event.sender.id == id[0].toLong()) {
+                        if (id[2] == "Paid") {
+                            paid = true
+                        }
+                        break
+                    }
+                }
+
+                val chat = client.chat.create(model = "gpt-3.5-turbo", paid = paid) {
                     messages(buffer)
                     user(event.senderName)
                     if (!event.message.contentToString().startsWith("!")) {

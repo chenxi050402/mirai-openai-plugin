@@ -15,8 +15,14 @@ public class ChatController(private val client: OpenAiClient) {
     /**
      * [Create chat completion](https://platform.openai.com/docs/api-reference/chat/create)
      */
-    public suspend fun create(request: ChatRequest): ChatInfo {
-        val response = client.http.post(ChatConfig.APIURL + "/v1/chat/completions") {
+    public suspend fun create(request: ChatRequest, paid: Boolean): ChatInfo {
+        var httpclient = client.http
+        var apiurltemp = ChatConfig.APIURL
+        if (paid) {
+            httpclient = client.httppaid
+            apiurltemp = ChatConfig.APIURLPaid
+        }
+        val response = httpclient.post("$apiurltemp/v1/chat/completions") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }
@@ -27,7 +33,7 @@ public class ChatController(private val client: OpenAiClient) {
     /**
      * [Create completion](https://platform.openai.com/docs/api-reference/chat/create)
      */
-    public suspend fun create(model: String, block: ChatRequest.Builder.() -> Unit): ChatInfo {
-        return create(request = ChatRequest.Builder(model = model).apply(block).build())
+    public suspend fun create(model: String, paid: Boolean = false, block: ChatRequest.Builder.() -> Unit): ChatInfo {
+        return create(request = ChatRequest.Builder(model = model).apply(block).build(), paid)
     }
 }

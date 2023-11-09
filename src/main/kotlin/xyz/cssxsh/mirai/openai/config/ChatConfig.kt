@@ -14,7 +14,7 @@ internal object ChatConfig : ReadOnlyPluginConfig("chat") {
 
     @ValueName("gpt_model")
     @ValueDescription("GPT Model")
-    val model: String by value("gpt-3.5-turbo-0301")
+    val model: String by value("gpt-3.5-turbo")
 
     @ValueName("api_url")
     @ValueDescription("API URL")
@@ -23,6 +23,14 @@ internal object ChatConfig : ReadOnlyPluginConfig("chat") {
     @ValueName("api_domain")
     @ValueDescription("API Domain")
     val APIDomain: String by value("api.openai.com")
+
+    @ValueName("api_url_paid")
+    @ValueDescription("API URL (Paid)")
+    val APIURLPaid: String by value("https://api.openai.com")
+
+    @ValueName("api_domain_paid")
+    @ValueDescription("API Domain (Paid)")
+    val APIDomainPaid: String by value("api.openai.com")
 
     @ValueName("max_tokens")
     @ValueDescription("Maximum length")

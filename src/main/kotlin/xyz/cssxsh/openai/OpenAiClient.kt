@@ -85,6 +85,66 @@ public open class OpenAiClient(internal val config: OpenAiClientConfig) {
             }
         }
     }
+    public open val httppaid: HttpClient = HttpClient(OkHttp) {
+        install(ContentNegotiation) {
+            json(json = Json)
+        }
+        install(HttpTimeout) {
+            socketTimeoutMillis = config.timeout
+            connectTimeoutMillis = config.timeout
+            requestTimeoutMillis = null
+        }
+        Auth {
+            bearer {
+                loadTokens {
+                    BearerTokens(config.tokenpaid, "")
+                }
+                refreshTokens {
+                    BearerTokens(config.tokenpaid, "")
+                }
+                sendWithoutRequest { builder ->
+                    builder.url.host == ChatConfig.APIDomainPaid
+                }
+            }
+        }
+        HttpResponseValidator {
+            validateResponse { response ->
+                val statusCode = response.status.value
+                val originCall = response.call
+                if (statusCode < 400) return@validateResponse
+
+                val exceptionCall = originCall.save()
+                val exceptionResponse = exceptionCall.response
+
+                throw try {
+                    val error = exceptionResponse.body<ErrorInfoWrapper>().error
+                    OpenAiException(info = error)
+                } catch (_: ContentConvertException) {
+                    val exceptionResponseText = try {
+                        exceptionResponse.bodyAsText()
+                    } catch (_: MalformedInputException) {
+                        "<body failed decoding>"
+                    }
+                    when (statusCode) {
+                        in 400..499 -> {
+                            ClientRequestException(response, exceptionResponseText)
+                        }
+                        in 500..599 -> {
+                            ServerResponseException(response, exceptionResponseText)
+                        }
+                        else -> ResponseException(response, exceptionResponseText)
+                    }
+                }
+            }
+        }
+        BrowserUserAgent()
+        ContentEncoding()
+        engine {
+            config {
+                apply(config = config)
+            }
+        }
+    }
     public open val model: ModelController by lazy { ModelController(this) }
     public open val completion: CompletionController by lazy { CompletionController(this) }
     public open val edit: EditController by lazy { EditController(this) }
@@ -100,6 +160,11 @@ public open class OpenAiClient(internal val config: OpenAiClientConfig) {
      */
     public open fun clearToken() {
         for (provider in http.plugin(Auth).providers) {
+            if (provider !is BearerAuthProvider) continue
+            provider.clearToken()
+            break
+        }
+        for (provider in httppaid.plugin(Auth).providers) {
             if (provider !is BearerAuthProvider) continue
             provider.clearToken()
             break

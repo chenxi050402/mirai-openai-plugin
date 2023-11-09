@@ -11,6 +11,7 @@ internal class OpenAiClientTest {
         override val ipv6: Boolean = true
         override val timeout: Long = 30_000L
         override val token: String = System.getenv("OPENAI_TOKEN")
+        override val tokenpaid: String = System.getenv("OPENAI_TOKEN")
 
     }
     private val client = OpenAiClient(config = config)

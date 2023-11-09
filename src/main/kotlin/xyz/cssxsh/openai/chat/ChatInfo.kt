@@ -16,5 +16,7 @@ public data class ChatInfo(
     @SerialName("object")
     val type: String = "",
     @SerialName("usage")
-    val usage: Usage = Usage()
+    val usage: Usage = Usage(),
+    @SerialName("system_fingerprint")
+    val system_fingerprint: String = ""
 )
