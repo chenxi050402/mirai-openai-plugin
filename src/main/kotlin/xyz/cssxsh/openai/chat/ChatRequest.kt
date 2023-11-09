@@ -70,17 +70,17 @@ public data class ChatRequest(
 
         @OpenAiDsl
         public fun MutableList<ChoiceMessage>.system(content: String): Boolean {
-            return add(ChoiceMessage(role = "system", content = content))
+            return add(ChoiceMessage(role = "system", content = listOf(ChoiceMessagePart(content))))
         }
 
         @OpenAiDsl
         public fun MutableList<ChoiceMessage>.user(content: String): Boolean {
-            return add(ChoiceMessage(role = "user", content = content))
+            return add(ChoiceMessage(role = "user", content = listOf(ChoiceMessagePart(content))))
         }
 
         @OpenAiDsl
         public fun MutableList<ChoiceMessage>.assistant(content: String): Boolean {
-            return add(ChoiceMessage(role = "system", content = content))
+            return add(ChoiceMessage(role = "system", content = listOf(ChoiceMessagePart(content))))
         }
 
         @OpenAiDsl

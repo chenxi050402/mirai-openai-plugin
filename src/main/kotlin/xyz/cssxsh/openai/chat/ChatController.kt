@@ -3,6 +3,11 @@ package xyz.cssxsh.openai.chat
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.serialization.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import xyz.cssxsh.mirai.openai.MiraiOpenAiListener.logger
 import xyz.cssxsh.mirai.openai.config.ChatConfig
 import xyz.cssxsh.openai.*
 
@@ -22,9 +27,12 @@ public class ChatController(private val client: OpenAiClient) {
             httpclient = client.httppaid
             apiurltemp = ChatConfig.APIURLPaid
         }
+        val json = Json { encodeDefaults = false }
+        val modifiedRequest = json.encodeToString(request)
+        logger.info(modifiedRequest)
         val response = httpclient.post("$apiurltemp/v1/chat/completions") {
             contentType(ContentType.Application.Json)
-            setBody(request)
+            setBody(modifiedRequest)
         }
 
         return response.body()

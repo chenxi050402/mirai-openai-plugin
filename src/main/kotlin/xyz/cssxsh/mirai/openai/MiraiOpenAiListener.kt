@@ -8,6 +8,7 @@ import io.ktor.http.*
 import io.ktor.util.cio.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.*
+import kotlinx.serialization.SerialName
 import net.mamoe.mirai.console.command.CommandSender.Companion.toCommandSender
 import net.mamoe.mirai.console.permission.*
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
@@ -16,6 +17,8 @@ import net.mamoe.mirai.event.*
 import net.mamoe.mirai.event.events.*
 import net.mamoe.mirai.message.*
 import net.mamoe.mirai.message.data.*
+import net.mamoe.mirai.message.data.Image.Key.queryUrl
+import net.mamoe.mirai.message.data.MessageChain.Companion.serializeToJsonString
 import net.mamoe.mirai.message.data.MessageSource.Key.quote
 import net.mamoe.mirai.utils.*
 import xyz.cssxsh.mirai.openai.config.*
@@ -25,12 +28,13 @@ import java.io.File
 import java.util.Base64
 import java.util.UUID
 import kotlin.coroutines.*
+import kotlin.reflect.typeOf
 
 @PublishedApi
 internal object MiraiOpenAiListener : SimpleListenerHost() {
     private val client = OpenAiClient(config = MiraiOpenAiConfig)
     private val folder = File(MiraiOpenAiConfig.folder)
-    private val logger = MiraiLogger.Factory.create(this::class)
+    public val logger = MiraiLogger.Factory.create(this::class)
     private val lock: MutableMap<Long, MessageEvent> = java.util.concurrent.ConcurrentHashMap()
     internal val completion: Permission by MiraiOpenAiPermissions
     internal val image: Permission by MiraiOpenAiPermissions
@@ -199,7 +203,7 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
                 break
             }
         }
-        val system = ChatConfig.systemPrompt + combinedInitialMessage
+        val system = listOf(ChoiceMessagePart(ChatConfig.systemPrompt + combinedInitialMessage))
         launch {
             lock[event.sender.id] = event
             val buffer = mutableListOf<ChoiceMessage>()
@@ -209,9 +213,39 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
             ))
             while (isActive) {
                 val next = event.nextMessage(ChatConfig.timeout, EventPriority.HIGH, intercept = true)
-                val content = next.contentToString()
-                if (content == MiraiOpenAiConfig.stop) break
+                val content = mutableListOf<ChoiceMessagePart>()
+                var addcontent = ""
                 var custom = false
+                var usemodel = ChatConfig.model
+                if (!event.message.contentToString().startsWith("!")) {
+                    if (initialMessage.startsWith("?model=")) {
+                        usemodel = initialMessage.removePrefix("?model=")
+                        custom = true
+                    }
+                    else {
+                        for (id in ChatConfig.customModels) {
+                            if (event.sender.id == id[0].toLong()) {
+                                usemodel = id[1]
+                                custom = true
+                                break
+                            }
+                        }
+                    }
+                }
+                for (i in next) {
+                    if (i is Image && usemodel.contains("vision")) {
+                        content.add(ChoiceMessagePart(type = "text", text = addcontent))
+                        addcontent = ""
+                        content.add(ChoiceMessagePart(imageUrl = ImageUrl(i.queryUrl())))
+                    } else if (i is PlainText || i is Face || i is PokeMessage || i is VipFace || i is LightApp || i is MarketFace || i is Image || i is ForwardMessage || i is FileMessage || i is Audio) {
+                        addcontent += i.contentToString()
+                    }
+                }
+                if (addcontent != "") {
+                    content.add(ChoiceMessagePart(type = "text", text = addcontent))
+                }
+                logger.info(content.toString())
+                if (next.contentToString() == MiraiOpenAiConfig.stop) break
                 var paid = false
 
                 buffer.add(ChoiceMessage(
@@ -231,35 +265,25 @@ internal object MiraiOpenAiListener : SimpleListenerHost() {
                 val chat = client.chat.create(model = "gpt-3.5-turbo", paid = paid) {
                     messages(buffer)
                     user(event.senderName)
-                    if (!event.message.contentToString().startsWith("!")) {
-                        if (initialMessage.startsWith("?model=")) {
-                            ChatConfig.pushCustom(this, initialMessage.removePrefix("?model="))
-                            custom = true
-                        }
-                        else {
-                            for (id in ChatConfig.customModels) {
-                                if (event.sender.id == id[0].toLong()) {
-                                    ChatConfig.pushCustom(this, id[1])
-                                    custom = true
-                                    break
-                                }
-                            }
-                        }
-                    }
-                    if (!custom) ChatConfig.push(this)
+                    if (custom) ChatConfig.pushCustom(this, usemodel)
+                    else ChatConfig.push(this)
                 }
                 logger.debug { "${chat.model} - ${chat.usage}" }
                 val reply = chat.choices.first()
-                val message = reply.message ?: ChoiceMessage(
-                    role = "assistant",
-                    content = reply.text
-                )
+                val message = if (reply.message != null) {
+                    ChoiceMessage(role = "assistant", content = listOf(ChoiceMessagePart(text = reply.message.content)))
+                } else {
+                    ChoiceMessage(
+                        role = "assistant",
+                        content = listOf(ChoiceMessagePart(reply.text))
+                    )
+                }
                 buffer.add(message)
                 if (chat.usage.totalTokens > ChatConfig.maxTokens * 0.96) {
                     buffer.removeFirstOrNull()
                 }
                 launch {
-                    event.subject.sendMessage(next.quote() + message.content)
+                    event.subject.sendMessage(next.quote() + message.content[0].text.toString())
                 }
                 when (reply.finishReason) {
                     "length" -> logger.warning { "max_tokens not enough for ${next.quote()} " }
